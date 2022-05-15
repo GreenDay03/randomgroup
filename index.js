@@ -80,9 +80,11 @@ function solve(input) {
     var conflict = function() {
         for(var j = 0; j < input["no"].length; j++) {
             var line = input["no"][j];
-            for (var index = 1; index < line.length; index++) {
-                if(findroot(line[0]) == findroot(line[index])) {
-                    return true;
+            for (var i = 0; i < line.length; i++) {
+                for (var index = 0; index < i; index++) {
+                    if(findroot(line[i]) == findroot(line[index])) {
+                        return true;
+                    }
                 }
             }
         }
