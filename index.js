@@ -20,7 +20,7 @@ function parsePairs (str, names) {
     var arr = wash(str.split('\n'));
     var ret = [];
     arr.forEach((line) => {
-        line.replace('，',',');
+        line = line.replace(/，/g,',');
         var arr = wash(line.split(','));
         arr = arr.filter(x => names.indexOf(x) > -1);
         if(arr.length >= 2) {
@@ -54,7 +54,7 @@ function parseInput() {
 }
 
 function solve(input) {
-    if(input === undefined || input.names.length <= 0 || isNaN(input.number)) {
+    if(input === undefined || input.names.length <= 0 || isNaN(input.number) || input.number <= 0) {
         return "<h3>输入不合法</h3>";
     }
     var names = input["names"];
@@ -92,24 +92,53 @@ function solve(input) {
         return "<h3>您的条件相互矛盾</h3>";
     }
     var number = input["number"];
-    var flag = true;
-    while(flag) {
-        flag = false;
-        for(var i = 0; i < 1000; ++i) {
-            var x = Math.floor((Math.random()*names.length)), y = Math.floor((Math.random()*names.length));
-            x = findroot(names[x]), y = findroot(names[y]);
-            if(x == y || unionSet[x][1] + unionSet[y][1] > number) {
-                continue;
-            }
-            var old = clone(unionSet);
-            merge(x, y);
-            if(conflict()) {
-                unionSet = clone(old);
-            } else {
-                flag = true;
-                break;
+    
+    function attempt_solve() {
+        var leaders = names.filter(person => findroot(person) == person);
+        leaders.sort((x, y) => unionSet[y][1] - unionSet[x][1]);
+        var n = Math.ceil(names.length / number);
+        var big = leaders.slice(0, n).shuffle(), small = leaders.slice(n).shuffle();
+        small.forEach((person) => {
+            var little = big[0];
+            big.forEach((x) => {
+                if(unionSet[little][1] > unionSet[x][1]) {
+                    little = x;
+                }
+            });
+            merge(person, little);
+        })
+        if(conflict() || names.filter(person => unionSet[person][1] > number).length > 0) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    function steady_solve() {
+        var flag = true;
+        while(flag) {
+            flag = false;
+            var leaders = names.filter(person => findroot(person) == person);
+            for(var i = 0; i < 500; ++i) {
+                var x = Math.floor((Math.random()*leaders.length)), y = Math.floor((Math.random()*leaders.length));
+                x = findroot(leaders[x]), y = findroot(leaders[y]);
+                if(x == y || unionSet[x][1] + unionSet[y][1] > number) {
+                    continue;
+                }
+                var old = clone(unionSet);
+                merge(x, y);
+                if(conflict()) {
+                    unionSet = clone(old);
+                } else {
+                    flag = true;
+                    break;
+                }
             }
         }
+    }
+    var old = clone(unionSet);
+    if(!attempt_solve()) {
+        unionSet = clone(old);
+        steady_solve();
     }
     result = []
     names.forEach((x) => {
